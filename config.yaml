@@ -1,0 +1,97 @@
+project:
+  name: retailpulse
+  seed: 42
+
+# All file paths are relative to the repo root.
+data:
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  users_file: data/raw/users.parquet
+  events_file: data/raw/events.parquet
+  assignment_file: data/raw/assignments.parquet
+  truth_file: data/interim/simulation_truth.csv
+  assignment_truth_file: data/interim/assignments_truth.csv
+  validation_file: data/interim/validation_report.csv
+
+simulation:
+  start_date: "2026-01-05"   # Monday
+  weeks: 26
+  n_users: 24000
+  weekly_active_mean: 0.26
+  sessions_per_active_user: 1.6
+  base_cart_rate: 0.114      # session -> add_to_cart
+  base_checkout_rate: 0.55   # add_to_cart -> checkout
+  base_purchase_rate: 0.72   # checkout -> purchase
+  # session -> purchase conversion is the product of the three stages (0.045)
+  weekend_uplift: 1.35       # multiplicative on session conversion
+  new_user_share: 0.18
+  weekly_growth: 0.006
+
+warehouse:
+  db_file: data/retail.duckdb
+  funnel_file: data/processed/funnel_weekly.parquet
+  retention_file: data/processed/cohort_retention.parquet
+  metric_file: data/processed/metric_tree_weekly.parquet
+  segment_file: data/processed/segment_weekly.parquet
+  category_file: data/processed/category_weekly.parquet
+
+experiments:
+  alpha: 0.05
+  power_target: 0.80
+  mde_relative: 0.03
+  interim_looks: 3
+  srm_alpha: 0.001
+  cuped_covariate: pre_period_sessions
+  registry:
+    - id: EXP-001
+      name: Express guest checkout
+      hypothesis: "Removing forced account creation at checkout raises session conversion."
+      primary_metric: session_conversion_rate
+      start_week: 8
+      end_week: 16
+      split: 0.5
+      true_effect_abs: 0.0036   # ~8% relative lift on session conversion - a realistic guest-checkout win
+      srm_bug: false
+      decision_if_win: ship
+    - id: EXP-002
+      name: Search ranking v2
+      hypothesis: "Relevance-ranked search raises add-to-cart rate."
+      primary_metric: cart_rate
+      start_week: 10
+      end_week: 14
+      split: 0.5
+      true_effect_abs: 0.0
+      srm_bug: false
+      decision_if_win: ship
+    - id: EXP-003
+      name: Free shipping threshold banner
+      hypothesis: "Showing the free-shipping threshold raises average order value."
+      primary_metric: session_conversion_rate
+      start_week: 18
+      end_week: 24
+      split: 0.5
+      true_effect_abs: 0.0016
+      srm_bug: true          # mobile control assignments dropped from the log
+      decision_if_win: ship
+
+reporting:
+  readout_file: reports/experiment_readout.md
+  insights_file: reports/weekly_insights.md
+  dictionary_file: reports/metric_dictionary.csv
+  figures_dir: reports/figures
+
+genai:
+  provider_env_key: RETAILPULSE_LLM_API_KEY
+  base_url: "https://api.openai.com/v1/chat/completions"
+  model: "gpt-4o-mini"
+  timeout_seconds: 20
+  max_retries: 2
+
+api:
+  host: 127.0.0.1
+  port: 8010
+
+dashboard:
+  host: 127.0.0.1
+  port: 8501

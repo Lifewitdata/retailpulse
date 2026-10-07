@@ -1,0 +1,19 @@
+# Only config.yaml, sql/ and src/ are copied into the image; the warehouse,
+# reports and figures are regenerated at container start from seed 42.
+data/
+reports/
+tests/
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.env
+.env.*
+README.md
+Makefile
+Dockerfile
+.dockerignore
